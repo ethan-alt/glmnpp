@@ -1,0 +1,90 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# glmnpp
+
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/ethan-alt/glmnpp/workflows/R-CMD-check/badge.svg)](https://github.com/ethan-alt/glmnpp/actions)
+<!-- badges: end -->
+
+The goal of glmnpp is to make user-friendly functions to ease in sampling
+from the posterior distribution using the normalized power prior for GLMs.
+
+## Installation
+
+You can install the development version of glmnpp from [GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("ethan-alt/glmnpp")
+```
+
+Note that the package takes quite a long time to install (around 10 minutes on a local machine).
+
+## Example
+
+Below, we present an example of how the package may be used for a logistic
+regression model. We begin by simulating the current and historical data sets.
+
+```{r example}
+library(glmnpp)
+set.seed(123)
+n  = 30
+n0 = 20
+x  = rnorm(n)
+x0 = rnorm(n0)
+y  = rbinom(n = n,  size = 1, prob = binomial()$linkinv(1 - 0.5 * x) )
+y0 = rbinom(n = n0, size = 1, prob = binomial()$linkinv(1 - 0.5 * x0) )
+data = data.frame('y' = y, 'x' = x)
+histdata = data.frame('y' = y0, 'x' = x0)
+```
+
+
+We now estimate the logarithm of the normalizing constant
+```{r example2}
+## Estimate logarithm of normalizing constant using bridge sampling;
+##   refresh = 0 is a rstan::sampling argument that suppresses console
+##   output
+bridge = glm_npp_lognc(
+  y ~ x, binomial(), histdata, a0.n = 20, method = 'bridge', refresh = 0
+)
+head(bridge)
+```
+
+We can then obtain a smooth estimate of the normalizing constant using `loess`
+```{r example3}
+lognc.loess   = loess(lognc ~ a0, data = bridge)
+a0.data       = data.frame('a0' = seq(0, 1, length.out = 1000))
+a0.data$lognc = predict(lognc.loess, newdata = a0.data)
+par(mfrow = c(1, 2))
+plot(x = a0.data$a0, y = a0.data$lognc, type = 'l', ylab = 'lognc', xlab = 'a0',
+     main = "Smoothed log nc")
+points(x = bridge$a0, y = bridge$lognc, col = 'red')
+plot(x = a0.data$lognc, y = predict(lognc.loess, newdata = a0.data$a0),
+     xlab = "log nc from bridge sampling",
+     ylab = "smoothed log nc",
+     main = "Bridge vs smoothed"
+)
+abline(a = 0, b = 1, col = 'red') ## 45 degree line
+par(mfrow = c(1, 1))
+```
+
+The smoothing seems to have done a decent job at predicting the log normalizing
+constant, so we proceed. We now incorporate the smoothed estimate of the log 
+normalizing constant into the posterior distribution
+```{r example4}
+fit.post = glm_npp(y ~ x, binomial(), data, histdata, a0.lognc = a0.data)
+fit.post
+```
