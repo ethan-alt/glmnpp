@@ -1,0 +1,45 @@
+Package: glmnpp
+Title: Normalized Power Prior for Generalized Linear Models
+Version: 0.0.0.9000
+Authors@R: 
+  c(person(given = "Ethan",
+           family = "Alt",
+           role = c("aut", "cre"),
+           email = "ethanalt@live.unc.edu"),
+    person(given = "Luiz",
+           family = "Carvalho",
+           role = "ctb"),
+    person(given = "Joseph",
+           family = "Ibrahim",
+           role = "ctb"))
+Description: Normalized power prior analysis for generalized linear models (GLMs).
+             The package enables estimation of the normalizing constant of power prior models using Stan for
+             posterior inference.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.2
+Biarch: true
+Depends: 
+    R (>= 3.4.0)
+Imports: 
+    methods,
+    Rcpp (>= 0.12.0),
+    RcppParallel (>= 5.0.1),
+    rstan (>= 2.18.1),
+    rstantools (>= 2.1.1)
+LinkingTo: 
+    BH (>= 1.66.0),
+    Rcpp (>= 0.12.0),
+    RcppEigen (>= 0.3.3.3.0),
+    RcppParallel (>= 5.0.1),
+    rstan (>= 2.18.1),
+    StanHeaders (>= 2.18.0)
+SystemRequirements: GNU make
+Collate: 
+    'glm_npp.R'
+    'glm_npp_prior.R'
+    'glm_npp_lognc.R'
+    'glmnpp-package.R'
+    'lm_npp.R'
+    'stanmodels.R'
