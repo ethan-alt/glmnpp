@@ -11,6 +11,7 @@ lm_npp(
   beta0 = NULL,
   Sigma0 = NULL,
   offset = NULL,
+  offset0 = NULL,
   sigmasq.shape = 2.1,
   sigmasq.rate = 1.1,
   a0.shape1 = 1,
@@ -29,7 +30,9 @@ lm_npp(
 
 \item{Sigma0}{covariance matrix for initial prior on regression coefficients. Defaults to \code{diag(100, ncol(X))}}
 
-\item{offset}{offset in LM If \code{NULL}, no offset is utilized}
+\item{offset}{offset for current data. If \code{NULL}, no offset is utilized}
+
+\item{offset0}{offset for historical data. If \code{NULL}, no offset is utilized}
 
 \item{sigmasq.shape}{shape parameter for inverse-gamma prior on variance parameter. When \code{sigmasq.shape==2.1} and \code{sigmasq.rate==1.1}, a prior with mean 1 and variance 100 is utilized}
 

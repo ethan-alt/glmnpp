@@ -42,7 +42,8 @@
 #'
 #' ## Estimate logarithm of normalizing constant using importance sampling
 #' ##   Note: for demonstration purposes only. nsmpl should be at least 10000 in practice
-#' importance = glm_npp_lognc(y ~ x, binomial(), histdata, a0 = c(0.10, 0.50), method = 'importance', nsmpl = 2000)
+#' importance = glm_npp_lognc(y ~ x, binomial(), histdata, a0 = c(0.10, 0.50),
+#'   method = 'importance', nsmpl = 2000)
 #'
 #' ## Compare results
 #' cbind('a0' = bridge[, 1], 'bridge' = bridge[, 2], 'importance' = importance[, 2])

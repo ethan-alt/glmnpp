@@ -16,6 +16,9 @@
 #' @import Rcpp
 #' @importFrom rstan sampling
 #' @importFrom stats model.matrix
+#' @importFrom formula.tools is.two.sided
+#' @importFrom mvtnorm rmvnorm
+#' @importFrom bridgesampling bridge_sampler
 #'
 #' @references
 #' Carvallho, L. M. and Ibrahim, J. G. (2021): On the normalized power prior. Statistics in Medicine. doi:10.1002/sim.9124
