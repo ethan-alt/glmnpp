@@ -29,9 +29,9 @@ model {
   sigmasq    ~ inv_gamma(sigmasq_shape, sigmasq_rate);
   if ( a0_shape1 != 1 || a0_shape2 != 1 )
     a0 ~ beta(a0_shape1, a0_shape2);
-  
-  // likelihood of current data and power prior  
-  y ~ normal_id_glm_lpdf(X, 0.0, beta, sigma);
+
+  // likelihood of current data and power prior
+  y ~ normal_id_glm(X, 0.0, beta, sigma);
   target += normal_id_glm_lpdf(y0 | X0, 0.0, beta, sigma * inv_sqrt(a0));
 }
 
