@@ -12,8 +12,10 @@ lm_npp(
   Sigma0 = NULL,
   offset = NULL,
   offset0 = NULL,
-  sigmasq.shape = 2.1,
-  sigmasq.rate = 1.1,
+  sigmasq.shape = NULL,
+  sigmasq.scale = NULL,
+  prec.shape = NULL,
+  prec.rate = NULL,
   a0.shape1 = 1,
   a0.shape2 = 1,
   ...
@@ -34,9 +36,13 @@ lm_npp(
 
 \item{offset0}{offset for historical data. If \code{NULL}, no offset is utilized}
 
-\item{sigmasq.shape}{shape parameter for inverse-gamma prior on variance parameter. When \code{sigmasq.shape==2.1} and \code{sigmasq.rate==1.1}, a prior with mean 1 and variance 100 is utilized}
+\item{sigmasq.shape}{shape parameter for inverse-gamma prior on variance parameter. Defaults to \code{2.1}}
 
-\item{sigmasq.rate}{rate parameter for inverse-gamma prior on variance parameter. When \code{sigmasq.shape==2.1} and \code{sigmasq.rate==1.1}, a prior with mean 1 and variance 100 is utilized}
+\item{sigmasq.scale}{scale parameter for inverse-gamma prior on variance parameter. Defaults to \code{1.1}}
+
+\item{prec.shape}{shape parameter for gamma prior on precision parameter (inverse of \code{sigmasq}). Ignored if sigmasq.shape is specified}
+
+\item{prec.rate}{rate parameter for gamma prior on precision parameter (inverse of \code{sigmasq}). Ignored if sigmasq.scale is specified}
 
 \item{a0.shape1}{shape1 parameter for beta prior on the power prior parameter. When \code{a0.shape1==1} and \code{a0.shape2==1}, a uniform prior is utilized}
 
