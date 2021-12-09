@@ -12,8 +12,8 @@
 #' @param Sigma0          covariance matrix for initial prior on regression coefficients. Defaults to \code{diag(100, ncol(X))}
 #' @param offset          offset for current data. If \code{NULL}, no offset is utilized
 #' @param offset0         offset for historical data. If \code{NULL}, no offset is utilized
-#' @param sigmasq.shape   shape parameter for inverse-gamma prior on variance parameter. When `sigmasq.shape==2.1` and `sigmasq.rate==1.1`, a prior with mean 1 and variance 100 is utilized
-#' @param sigmasq.rate    rate parameter for inverse-gamma prior on variance parameter. When `sigmasq.shape==2.1` and `sigmasq.rate==1.1`, a prior with mean 1 and variance 100 is utilized
+#' @param sigmasq.shape   shape parameter for inverse-gamma prior on variance parameter. When `sigmasq.shape==2.1` and `sigmasq.scale==1.1`, a prior with mean 1 and variance 100 is utilized
+#' @param sigmasq.scale   scale parameter for inverse-gamma prior on variance parameter. When `sigmasq.shape==2.1` and `sigmasq.scale==1.1`, a prior with mean 1 and variance 100 is utilized
 #' @param a0.shape1       shape1 parameter for beta prior on the power prior parameter. When `a0.shape1==1` and `a0.shape2==1`, a uniform prior is utilized
 #' @param a0.shape2       shape2 parameter for beta prior on the power prior parameter. When `a0.shape1==1` and `a0.shape2==1`, a uniform prior is utilized
 #' @param ...             optional parameters to pass onto `rstan::sampling`
@@ -36,7 +36,7 @@
 #'
 #' @export
 lm_npp = function(
-  formula, data, histdata, beta0 = NULL, Sigma0 = NULL, offset = NULL, offset0 = NULL, sigmasq.shape = 2.1, sigmasq.rate = 1.1, a0.shape1 = 1, a0.shape2 = 1, ...
+  formula, data, histdata, beta0 = NULL, Sigma0 = NULL, offset = NULL, offset0 = NULL, sigmasq.shape = 2.1, sigmasq.scale = 1.1, a0.shape1 = 1, a0.shape2 = 1, ...
 ) {
   ## make sure formula is two-sided
   if(!(formula.tools::is.two.sided(formula))) {
@@ -83,7 +83,7 @@ lm_npp = function(
     'mu0'           = beta0,
     'Sigma0'        = Sigma0,
     'sigmasq_shape' = sigmasq.shape,
-    'sigmasq_rate'  = sigmasq.rate,
+    'sigmasq_scale' = sigmasq.scale,
     'a0_shape1'     = a0.shape1,
     'a0_shape2'     = a0.shape2
   )
