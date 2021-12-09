@@ -12,8 +12,10 @@
 #' @param Sigma0          covariance matrix for initial prior on regression coefficients. Defaults to \code{diag(100, ncol(X))}
 #' @param offset          offset for current data. If \code{NULL}, no offset is utilized
 #' @param offset0         offset for historical data. If \code{NULL}, no offset is utilized
-#' @param sigmasq.shape   shape parameter for inverse-gamma prior on variance parameter. When `sigmasq.shape==2.1` and `sigmasq.scale==1.1`, a prior with mean 1 and variance 100 is utilized
-#' @param sigmasq.scale   scale parameter for inverse-gamma prior on variance parameter. When `sigmasq.shape==2.1` and `sigmasq.scale==1.1`, a prior with mean 1 and variance 100 is utilized
+#' @param sigmasq.shape   shape parameter for inverse-gamma prior on variance parameter. Defaults to \code{2.1}
+#' @param sigmasq.scale   scale parameter for inverse-gamma prior on variance parameter. Defaults to \code{1.1}
+#' @param prec.shape      shape parameter for gamma prior on precision parameter (inverse of \code{sigmasq}). Ignored if sigmasq.shape is specified
+#' @param prec.rate       rate parameter for gamma prior on precision parameter (inverse of \code{sigmasq}). Ignored if sigmasq.scale is specified
 #' @param a0.shape1       shape1 parameter for beta prior on the power prior parameter. When `a0.shape1==1` and `a0.shape2==1`, a uniform prior is utilized
 #' @param a0.shape2       shape2 parameter for beta prior on the power prior parameter. When `a0.shape1==1` and `a0.shape2==1`, a uniform prior is utilized
 #' @param ...             optional parameters to pass onto `rstan::sampling`
@@ -36,7 +38,9 @@
 #'
 #' @export
 lm_npp = function(
-  formula, data, histdata, beta0 = NULL, Sigma0 = NULL, offset = NULL, offset0 = NULL, sigmasq.shape = 2.1, sigmasq.scale = 1.1, a0.shape1 = 1, a0.shape2 = 1, ...
+  formula, data, histdata, beta0 = NULL, Sigma0 = NULL, offset = NULL,
+  offset0 = NULL, sigmasq.shape = NULL, sigmasq.scale = NULL,
+  prec.shape = NULL, prec.rate = NULL, a0.shape1 = 1, a0.shape2 = 1, ...
 ) {
   ## make sure formula is two-sided
   if(!(formula.tools::is.two.sided(formula))) {
@@ -45,6 +49,15 @@ lm_npp = function(
   if(any(is.na(data)))     { stop('There are missing values in data') }
   if(any(is.na(histdata))) { stop('There are missing values in histdata') }
 
+  ## Check hyperparameters for sigma^2
+  if (!is.null(prec.rate) & is.null(sigmasq.scale) )
+    sigmasq.scale = prec.rate
+  if (!is.null(prec.shape) & is.null(sigmasq.shape) )
+    sigmasq.shape = prec.rate
+  if ( is.null(sigmasq.shape) )
+    sigmasq.shape = 2.1
+  if(is.null(sigmasq.scale))
+    sigmasq.scale = 1.1
   ## get design matrices
   X  = model.matrix(formula, data)
   X0 = model.matrix(formula, histdata)
