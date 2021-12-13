@@ -43,8 +43,10 @@ Collate:
     'glm_npp.R'
     'glm_npp_prior.R'
     'glm_npp_lognc.R'
+    'glm_pp.R'
     'glmnpp-package.R'
     'lm_npp.R'
+    'lm_pp.R'
     'stanmodels.R'
 URL: https://github.com/ethan-alt/glmnpp
 BugReports: https://github.com/ethan-alt/glmnpp/issues

@@ -23,36 +23,39 @@
 #' @param method          character vector giving which method to use for importance sampling. Acceptable values are `"bridge"` or`"importance"`, corresponding to bridge sampling and importance sampling, respectively
 #' @param nsmpl           (optional) number of importance samples to take (ignored if \code{method == 'bridge'})
 #' @param bridge.args     (optional) parameters to pass onto `bridgesampling::bridge_sampler` (otherwise, default is performed) (ignored if \code{method == 'importance'})
-#' @param ...             (optional) parameters to pass onto `rstan::sampling` (ignored if \code{method == 'importance'})
+#' @param verbose         logical indicating whether to print the progress to the console
+#' @param ...             (optional) parameters to pass onto `rstan::sampling` (ignored if \code{method == 'importance'}). It is recommended to pass \code{refresh = 0} when estimating the normalizing constant at many points.
 #'
 #' @examples
-#' ## Generate current and historical data
+#' ## Generate historical data
 #' set.seed(123)
-#' n  = 30
 #' n0 = 20
-#' x  = rnorm(n)
 #' x0 = rnorm(n0)
-#' y  = rbinom(n = n,  size = 1, prob = binomial()$linkinv(1 - 0.5 * x) )
 #' y0 = rbinom(n = n0, size = 1, prob = binomial()$linkinv(1 - 0.5 * x0) )
-#' data = data.frame('y' = y, 'x' = x)
 #' histdata = data.frame('y' = y0, 'x' = x0)
 #'
 #' ## Estimate logarithm of normalizing constant using bridge sampling
-#' bridge = glm_npp_lognc(y ~ x, binomial(), histdata, a0 = c(0.10, 0.50), method = 'bridge')
+#' bridge = glm_npp_lognc(y ~ x, binomial(), histdata, a0 = c(0.10, 0.50),
+#'   method = 'bridge', refresh = 0
+#' )
 #'
 #' ## Estimate logarithm of normalizing constant using importance sampling
-#' ##   Note: for demonstration purposes only. nsmpl should be at least 10000 in practice
+#' ##   Note: for demonstration purposes only. nsmpl should be at least
+#' ##   10000 in practice
 #' importance = glm_npp_lognc(y ~ x, binomial(), histdata, a0 = c(0.10, 0.50),
 #'   method = 'importance', nsmpl = 2000)
 #'
 #' ## Compare results
-#' cbind('a0' = bridge[, 1], 'bridge' = bridge[, 2], 'importance' = importance[, 2])
+#' cbind(
+#'   'a0' = bridge[, 1], 'bridge' = bridge[, 2],
+#'   'importance' = importance[, 2]
+#' )
 #'
 #'
-#' @return a \code{data.frame} giving a0 and the logarithm of the normalizing constant evaluted at a0
+#' @return a \code{data.frame} giving a0 and the logarithm of the normalizing constant evaluated at a0
 #'
 #' @export
-glm_npp_lognc = function(formula, family, histdata, a0 = NULL, a0.n = NULL, beta0 = NULL, Sigma0 = NULL, offset = NULL, disp.shape = 2.1, disp.scale = 1.1, method = 'bridge', nsmpl = 1000, bridge.args = NULL, ...) {
+glm_npp_lognc = function(formula, family, histdata, a0 = NULL, a0.n = NULL, beta0 = NULL, Sigma0 = NULL, offset = NULL, disp.shape = 2.1, disp.scale = 1.1, method = 'bridge', nsmpl = 1000, bridge.args = NULL, verbose = T, ...) {
   ## Check if a0 or a0.n are specified
   if( !(is.null(a0)) & !(is.null(a0.n)) ) {
     warning("a0 and a0.n both specified. Using the input for a0.")
@@ -63,6 +66,8 @@ glm_npp_lognc = function(formula, family, histdata, a0 = NULL, a0.n = NULL, beta
     a0   = seq(0, 1, length.out = a0.n)
     a0.n = NULL
   }
+  n.a0 = length(a0)
+
 
   ## Supply warning if linear model with identity link
   if ( family$family == 'gaussian' & family$link == 'identity' )
@@ -71,22 +76,42 @@ glm_npp_lognc = function(formula, family, histdata, a0 = NULL, a0.n = NULL, beta
   ## check method
   if (!(method %in% c('bridge', 'importance'))) stop('method must be "bridge" or "importance"')
 
+  ## create vector for every 10% of a0.n
+  if (n.a0 >= 10){
+    pct = round( seq(0.1, 0.9, by = 0.1) * n.a0 )
+    pct_count = 10
+  } else {
+    pct = round(1:n.a0 / n.a0 * 100)
+    count = 1
+  }
+
   ## Initialize result
   lognc = numeric(length(a0))
-  if ( method == 'bridge' ) {
-    for ( i in seq_along(a0) ) {
+
+  ## loop through a0 values; print along the way if verbose == T
+  for ( i in seq_along(a0) ) {
+    if (verbose) {
+      if ( n.a0 >= 10 ) {
+        if (i %in% pct){
+          print(paste0(pct_count, '% finished'))
+          pct_count = pct_count + 10
+        }
+      } else {
+        print(paste0(pct[count], '% finished'))
+        count = count + 1
+      }
+    }
+    if ( method == 'bridge' )
       lognc[i] = glm_npp_lognc_bridge(formula, family, histdata, a0[i], beta0, Sigma0, offset, disp.shape, disp.scale, bridge.args, ...)
-    }
-  }
-  if ( method == 'importance' ){
-    for ( i in seq_along(a0) ) {
+    if (method == 'importance')
       lognc[i] = glm_npp_lognc_importance(formula, family, histdata, a0[i], beta0, Sigma0, offset, disp.shape, disp.scale, nsmpl = nsmpl)
-    }
   }
   ## result is a data.frame giving (a0, lognc)
   a0lognc                 = data.frame('a0' = a0, 'lognc' = lognc)
   a0lognc                 = a0lognc[order(a0lognc$a0), ]
   attr(a0lognc, 'method') = method
+  if (verbose & (n.a0 >= 10) )
+    print('100% finished')
   return(a0lognc)
 }
 
@@ -110,6 +135,7 @@ glm_npp_lognc = function(formula, family, histdata, a0 = NULL, a0.n = NULL, beta
 #' @param bridge.args     (optional) parameters to pass onto `bridgesampling::bridge_sampler` (otherwise, default is performed)
 #' @param ...             (optional) parameters to pass onto `rstan::sampling`
 glm_npp_lognc_bridge = function(formula, family, histdata, a0, beta0, Sigma0, offset, disp.shape, disp.scale, bridge.args = NULL, ...) {
+
   fit = glm_npp_prior(
     formula, family, histdata = histdata, a0 = a0, beta0 = beta0, Sigma0 = Sigma0, offset = offset, disp.shape = disp.shape, disp.scale = disp.scale, ...
   )
@@ -118,14 +144,30 @@ glm_npp_lognc_bridge = function(formula, family, histdata, a0, beta0, Sigma0, of
   rhat = max(diag[, 2])
   neff = min(diag[, 1])
   if ( rhat > 1.05 )
-    stop("Maximum rhat is larger than 1.05. Try increasing number of samples")
+    warning(
+      paste0(
+        "Maximum rhat is larger than 1.05 for a0 = ",
+        a0,
+        ". Try increasing the number of samples"
+      )
+    )
   if ( neff < 1000 )
-    stop("Minimum effective sample size is less than 1000. Try increasing number of samples")
+    warning(
+      paste0(
+        "Minimum effective sample size is smaller than 1000 for a0 = ",
+        a0,
+        ". Try increasing the number of samples"
+      )
+    )
   if ( is.null(bridge.args) ) {
-    res = bridgesampling::bridge_sampler(fit)
+    log. = capture.output ({
+      res = bridgesampling::bridge_sampler(fit)
+    })
   } else {
     args = c('samples' = fit, bridge.args)
-    res = do.call(bridgesampling::bridge_sampler, args)
+    log. = capture.output ({
+      res = do.call(bridgesampling::bridge_sampler, args)
+    })
   }
   return(res$logml)
 }
@@ -215,9 +257,7 @@ glm_npp_lognc_importance = function(formula, family, histdata, a0, beta0, Sigma0
         chains = 0
       )
     )
-  }
-
-  if ( family$family == "poisson" ) {
+  } else if ( family$family == "poisson" ) {
     opt = rstan::optimizing(
       object = stanmodels$glm_pp_poisson,
       data    = standat,
@@ -230,9 +270,7 @@ glm_npp_lognc_importance = function(formula, family, histdata, a0, beta0, Sigma0
         chains = 0
       )
     )
-  }
-
-  if ( family$family == "gaussian" ) {
+  } else if ( family$family == "gaussian" ) {
     opt = rstan::optimizing(
       object  = stanmodels$glm_pp_gaussian,
       data    = standat,
@@ -241,13 +279,11 @@ glm_npp_lognc_importance = function(formula, family, histdata, a0, beta0, Sigma0
     stanobj = suppressMessages(
       rstan::sampling(
         object  = stanmodels$glm_pp_gaussian,
-        data   = standat,
-        chains = 0
+        data    = standat,
+        chains  = 0
       )
     )
-  }
-
-  if ( family$family == "Gamma" ) {
+  } else if ( family$family == "Gamma" ) {
     opt = rstan::optimizing(
       object  = stanmodels$glm_pp_gamma,
       data    = standat,
@@ -256,11 +292,28 @@ glm_npp_lognc_importance = function(formula, family, histdata, a0, beta0, Sigma0
     stanobj = suppressMessages(
       rstan::sampling(
         object  = stanmodels$glm_pp_gamma,
-        data   = standat,
-        chains = 0
+        data    = standat,
+        chains  = 0
       )
     )
+  } else if ( family$family == "Gamma" ) {
+    opt = rstan::optimizing(
+      object  = stanmodels$glm_pp_invgaussian,
+      data    = standat,
+      hessian = T
+    )
+    stanobj = suppressMessages(
+      rstan::sampling(
+        object  = stanmodels$glm_pp_invgaussian,
+        data    = standat,
+        chains  = 0
+      )
+    )
+  } else {
+    stop("Invalid family")
+    return(NA) ## never reached
   }
+
 
   ## obtain importance sample from MVN
   invneghess = chol2inv(chol(-opt$hessian) )

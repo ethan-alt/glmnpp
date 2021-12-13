@@ -20,6 +20,7 @@ data {
 }
 transformed data {
   vector[nobs] y0vec = to_vector(y0);
+  y0vec = y0vec - offset;
 }
 
 // p+1 params: p-dim vector of regression coefficients and scalar inverse dispersion
@@ -40,18 +41,12 @@ model {
   dispersion ~ inv_gamma(disp_shape, disp_scale);  // inverse-gamma initial prior on dispersion
 
   if ( a0 > 0 ) {
-    if ( link == 1 && incl_offset == 0 )
+    if ( link == 1 )
       target += a0 * normal_id_glm_lpdf(y0vec | X, 0.0, beta, sigma);
     else {
       eta = X * beta;
-      if ( incl_offset == 1 )
-        eta += offset;
-      if ( link == 1 )
-        target += a0 * normal_lpdf(y0 | eta, sigma);
-      else {
-        mu      = linkinv(eta, link);
-        target += a0 * normal_lpdf(y0 | mu, sigma);
-      }
+      mu      = linkinv(eta, link);
+      target += a0 * normal_lpdf(y0vec | mu, sigma);
     }
   }
 }

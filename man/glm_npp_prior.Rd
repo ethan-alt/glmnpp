@@ -12,8 +12,8 @@ glm_npp_prior(
   beta0 = NULL,
   Sigma0 = NULL,
   offset = NULL,
-  disp.shape = 1e-04,
-  disp.scale = 1e-04,
+  disp.shape = 2.1,
+  disp.scale = 1.1,
   ...
 )
 }
@@ -42,5 +42,9 @@ glm_npp_prior(
 an object of class \link[rstan:stanfit-class]{rstan::stanfit} returned by \code{rstan::sampling}
 }
 \description{
-Uses \code{rstan} to sample from the prior of a power prior for a generalized linear model
+Uses \code{rstan} to sample from the prior of a power prior for a
+generalized linear model with a fixed power prior parameter. This function
+is the backbone for the \code{glm_npp_lognc} function, but it can be useful by
+itself for diagnosing sampling issues or finding out an appropriate amount
+of samples for bridge sampling.
 }

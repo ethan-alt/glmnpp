@@ -163,6 +163,15 @@ glm_npp = function(
       )
     )
   }
+  if ( family$family == "inverse.gaussian" ) {
+    return(
+      rstan::sampling(
+        object = stanmodels$glm_pp_invgaussian_post,
+        data   = standat,
+        ...
+      )
+    )
+  }
   stop("Invalid family")
   return(NA)   ## never reached
 }

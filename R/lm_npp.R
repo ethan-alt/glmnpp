@@ -53,7 +53,7 @@ lm_npp = function(
   if (!is.null(prec.rate) & is.null(sigmasq.scale) )
     sigmasq.scale = prec.rate
   if (!is.null(prec.shape) & is.null(sigmasq.shape) )
-    sigmasq.shape = prec.rate
+    sigmasq.shape = prec.shape
   if ( is.null(sigmasq.shape) )
     sigmasq.shape = 2.1
   if(is.null(sigmasq.scale))
@@ -71,8 +71,9 @@ lm_npp = function(
     ## check dimensions of offset
     if ( length(offset) != length(y) )   { stop("length of offset must match data") }
     if ( length(offset0) != length(y0) ) { stop("length of offset0 must match histdata") }
-    y  = y - offset
-    y0 = y0 - offset0
+  } else {
+      offset = rep(0, length(y))
+      offset0 = rep(0, length(y0))
   }
 
   ## default mean hyperparmeter for initial prior on beta is 0 and check dimensions
@@ -88,7 +89,7 @@ lm_npp = function(
   standat = list(
     'N'             = nrow(X),
     'N0'            = nrow(X0),
-    'K'             = ncol(X),
+    'p'             = ncol(X),
     'y'             = y,
     'y0'            = y0,
     'X'             = X,
@@ -98,12 +99,14 @@ lm_npp = function(
     'sigmasq_shape' = sigmasq.shape,
     'sigmasq_scale' = sigmasq.scale,
     'a0_shape1'     = a0.shape1,
-    'a0_shape2'     = a0.shape2
+    'a0_shape2'     = a0.shape2,
+    'offset'        = offset,
+    'offset0'       = offset0
   )
 
   ## call stan and return stanobject
   rstan::sampling(
-    object = stanmodels$lm_pp_gaussian_post,
+    object = stanmodels$lm_npp_gaussian,
     data   = standat,
     ...
   )

@@ -37,7 +37,7 @@ stan::io::program_reader prog_reader__() {
     reader.add_event(2, 0, "start", "/functions/link.stan");
     reader.add_event(25, 23, "end", "/functions/link.stan");
     reader.add_event(25, 3, "restart", "model_glm_pp_gaussian");
-    reader.add_event(81, 57, "end", "model_glm_pp_gaussian");
+    reader.add_event(76, 52, "end", "model_glm_pp_gaussian");
     return reader;
 }
 template <typename T0__>
@@ -261,14 +261,16 @@ public:
             stan::math::fill(y0vec, DUMMY_VAR__);
             stan::math::assign(y0vec,to_vector(y0));
             // execute transformed data statements
+            current_statement_begin__ = 45;
+            stan::math::assign(y0vec, subtract(y0vec, offset));
             // validate transformed data
             // validate, set parameter ranges
             num_params_r__ = 0U;
             param_ranges_i__.clear();
-            current_statement_begin__ = 49;
+            current_statement_begin__ = 50;
             validate_non_negative_index("beta", "p", p);
             num_params_r__ += p;
-            current_statement_begin__ = 50;
+            current_statement_begin__ = 51;
             num_params_r__ += 1;
         } catch (const std::exception& e) {
             stan::lang::rethrow_located(e, current_statement_begin__, prog_reader__());
@@ -287,7 +289,7 @@ public:
         (void) pos__; // dummy call to supress warning
         std::vector<double> vals_r__;
         std::vector<int> vals_i__;
-        current_statement_begin__ = 49;
+        current_statement_begin__ = 50;
         if (!(context__.contains_r("beta")))
             stan::lang::rethrow_located(std::runtime_error(std::string("Variable beta missing")), current_statement_begin__, prog_reader__());
         vals_r__ = context__.vals_r("beta");
@@ -304,7 +306,7 @@ public:
         } catch (const std::exception& e) {
             stan::lang::rethrow_located(std::runtime_error(std::string("Error transforming variable beta: ") + e.what()), current_statement_begin__, prog_reader__());
         }
-        current_statement_begin__ = 50;
+        current_statement_begin__ = 51;
         if (!(context__.contains_r("dispersion")))
             stan::lang::rethrow_located(std::runtime_error(std::string("Variable dispersion missing")), current_statement_begin__, prog_reader__());
         vals_r__ = context__.vals_r("dispersion");
@@ -342,14 +344,14 @@ public:
         try {
             stan::io::reader<local_scalar_t__> in__(params_r__, params_i__);
             // model parameters
-            current_statement_begin__ = 49;
+            current_statement_begin__ = 50;
             Eigen::Matrix<local_scalar_t__, Eigen::Dynamic, 1> beta;
             (void) beta;  // dummy to suppress unused var warning
             if (jacobian__)
                 beta = in__.vector_constrain(p, lp__);
             else
                 beta = in__.vector_constrain(p);
-            current_statement_begin__ = 50;
+            current_statement_begin__ = 51;
             local_scalar_t__ dispersion;
             (void) dispersion;  // dummy to suppress unused var warning
             if (jacobian__)
@@ -358,50 +360,39 @@ public:
                 dispersion = in__.scalar_lb_constrain(0);
             // model body
             {
-            current_statement_begin__ = 56;
+            current_statement_begin__ = 57;
             validate_non_negative_index("eta", "((primitive_value(logical_neq(link, 1)) || primitive_value(logical_eq(incl_offset, 1))) ? nobs : 0 )", ((primitive_value(logical_neq(link, 1)) || primitive_value(logical_eq(incl_offset, 1))) ? nobs : 0 ));
             Eigen::Matrix<local_scalar_t__, Eigen::Dynamic, 1> eta(((primitive_value(logical_neq(link, 1)) || primitive_value(logical_eq(incl_offset, 1))) ? nobs : 0 ));
             stan::math::initialize(eta, DUMMY_VAR__);
             stan::math::fill(eta, DUMMY_VAR__);
-            current_statement_begin__ = 57;
+            current_statement_begin__ = 58;
             validate_non_negative_index("mu", "(logical_neq(link, 1) ? nobs : 0 )", (logical_neq(link, 1) ? nobs : 0 ));
             Eigen::Matrix<local_scalar_t__, Eigen::Dynamic, 1> mu((logical_neq(link, 1) ? nobs : 0 ));
             stan::math::initialize(mu, DUMMY_VAR__);
             stan::math::fill(mu, DUMMY_VAR__);
-            current_statement_begin__ = 58;
+            current_statement_begin__ = 59;
             local_scalar_t__ sigma(DUMMY_VAR__);
             (void) sigma;  // dummy to suppress unused var warning
             stan::math::initialize(sigma, DUMMY_VAR__);
             stan::math::fill(sigma, DUMMY_VAR__);
             stan::math::assign(sigma,stan::math::sqrt(dispersion));
-            current_statement_begin__ = 61;
-            lp_accum__.add(multi_normal_log<propto__>(beta, beta0, Sigma0));
             current_statement_begin__ = 62;
+            lp_accum__.add(multi_normal_log<propto__>(beta, beta0, Sigma0));
+            current_statement_begin__ = 63;
             lp_accum__.add(inv_gamma_log<propto__>(dispersion, disp_shape, disp_scale));
-            current_statement_begin__ = 64;
+            current_statement_begin__ = 65;
             if (as_bool(logical_gt(a0, 0))) {
-                current_statement_begin__ = 65;
-                if (as_bool((primitive_value(logical_eq(link, 1)) && primitive_value(logical_eq(incl_offset, 0))))) {
-                    current_statement_begin__ = 66;
+                current_statement_begin__ = 66;
+                if (as_bool(logical_eq(link, 1))) {
+                    current_statement_begin__ = 67;
                     lp_accum__.add((a0 * normal_id_glm_log(y0vec, X, 0.0, beta, sigma)));
                 } else {
-                    current_statement_begin__ = 68;
-                    stan::math::assign(eta, multiply(X, beta));
                     current_statement_begin__ = 69;
-                    if (as_bool(logical_eq(incl_offset, 1))) {
-                        current_statement_begin__ = 70;
-                        stan::math::assign(eta, add(eta, offset));
-                    }
+                    stan::math::assign(eta, multiply(X, beta));
+                    current_statement_begin__ = 70;
+                    stan::math::assign(mu, linkinv(eta, link, pstream__));
                     current_statement_begin__ = 71;
-                    if (as_bool(logical_eq(link, 1))) {
-                        current_statement_begin__ = 72;
-                        lp_accum__.add((a0 * normal_log(y0, eta, sigma)));
-                    } else {
-                        current_statement_begin__ = 74;
-                        stan::math::assign(mu, linkinv(eta, link, pstream__));
-                        current_statement_begin__ = 75;
-                        lp_accum__.add((a0 * normal_log(y0, mu, sigma)));
-                    }
+                    lp_accum__.add((a0 * normal_log(y0vec, mu, sigma)));
                 }
             }
             }

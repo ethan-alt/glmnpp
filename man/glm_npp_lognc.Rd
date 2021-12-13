@@ -18,6 +18,7 @@ glm_npp_lognc(
   method = "bridge",
   nsmpl = 1000,
   bridge.args = NULL,
+  verbose = T,
   ...
 )
 }
@@ -48,10 +49,12 @@ glm_npp_lognc(
 
 \item{bridge.args}{(optional) parameters to pass onto \code{bridgesampling::bridge_sampler} (otherwise, default is performed) (ignored if \code{method == 'importance'})}
 
-\item{...}{(optional) parameters to pass onto \code{rstan::sampling} (ignored if \code{method == 'importance'})}
+\item{verbose}{logical indicating whether to print the progress to the console}
+
+\item{...}{(optional) parameters to pass onto \code{rstan::sampling} (ignored if \code{method == 'importance'}). It is recommended to pass \code{refresh = 0} when estimating the normalizing constant at many points.}
 }
 \value{
-a \code{data.frame} giving a0 and the logarithm of the normalizing constant evaluted at a0
+a \code{data.frame} giving a0 and the logarithm of the normalizing constant evaluated at a0
 }
 \description{
 Estimate the logarithm of the normalizing constant via importance sampling or bridge sampling.
@@ -60,27 +63,29 @@ Otherwise, MCMC sampling is performed and bridge sampling is utilized to estimat
 When a dispersion parameter is unknown, it is better to use bridge sampling (\code{method = 'bridge'}).
 }
 \examples{
-## Generate current and historical data
+## Generate historical data
 set.seed(123)
-n  = 30
 n0 = 20
-x  = rnorm(n)
 x0 = rnorm(n0)
-y  = rbinom(n = n,  size = 1, prob = binomial()$linkinv(1 - 0.5 * x) )
 y0 = rbinom(n = n0, size = 1, prob = binomial()$linkinv(1 - 0.5 * x0) )
-data = data.frame('y' = y, 'x' = x)
 histdata = data.frame('y' = y0, 'x' = x0)
 
 ## Estimate logarithm of normalizing constant using bridge sampling
-bridge = glm_npp_lognc(y ~ x, binomial(), histdata, a0 = c(0.10, 0.50), method = 'bridge')
+bridge = glm_npp_lognc(y ~ x, binomial(), histdata, a0 = c(0.10, 0.50),
+  method = 'bridge', refresh = 0
+)
 
 ## Estimate logarithm of normalizing constant using importance sampling
-##   Note: for demonstration purposes only. nsmpl should be at least 10000 in practice
+##   Note: for demonstration purposes only. nsmpl should be at least
+##   10000 in practice
 importance = glm_npp_lognc(y ~ x, binomial(), histdata, a0 = c(0.10, 0.50),
   method = 'importance', nsmpl = 2000)
 
 ## Compare results
-cbind('a0' = bridge[, 1], 'bridge' = bridge[, 2], 'importance' = importance[, 2])
+cbind(
+  'a0' = bridge[, 1], 'bridge' = bridge[, 2],
+  'importance' = importance[, 2]
+)
 
 
 }

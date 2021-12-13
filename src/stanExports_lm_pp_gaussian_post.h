@@ -33,7 +33,7 @@ static int current_statement_begin__;
 stan::io::program_reader prog_reader__() {
     stan::io::program_reader reader;
     reader.add_event(0, 0, "start", "model_lm_pp_gaussian_post");
-    reader.add_event(38, 36, "end", "model_lm_pp_gaussian_post");
+    reader.add_event(59, 57, "end", "model_lm_pp_gaussian_post");
     return reader;
 }
 #include <stan_meta_header.hpp>
@@ -42,7 +42,7 @@ class model_lm_pp_gaussian_post
 private:
         int N;
         int N0;
-        int K;
+        int p;
         vector_d y;
         vector_d y0;
         matrix_d X;
@@ -50,9 +50,20 @@ private:
         vector_d mu0;
         matrix_d Sigma0;
         double sigmasq_shape;
-        double sigmasq_rate;
+        double sigmasq_scale;
         double a0_shape1;
         double a0_shape2;
+        vector_d offset;
+        vector_d offset0;
+        matrix_d hist_prec;
+        vector_d hist_mle;
+        matrix_d prior_prec;
+        vector_d hist_prec_mle;
+        vector_d prior_prec_mean;
+        double sumy0sq;
+        double quad_b0;
+        vector_d y_offset;
+        vector_d y0_offset;
 public:
     model_lm_pp_gaussian_post(stan::io::var_context& context__,
         std::ostream* pstream__ = 0)
@@ -98,12 +109,12 @@ public:
             N0 = vals_i__[pos__++];
             check_greater_or_equal(function__, "N0", N0, 0);
             current_statement_begin__ = 5;
-            context__.validate_dims("data initialization", "K", "int", context__.to_vec());
-            K = int(0);
-            vals_i__ = context__.vals_i("K");
+            context__.validate_dims("data initialization", "p", "int", context__.to_vec());
+            p = int(0);
+            vals_i__ = context__.vals_i("p");
             pos__ = 0;
-            K = vals_i__[pos__++];
-            check_greater_or_equal(function__, "K", K, 0);
+            p = vals_i__[pos__++];
+            check_greater_or_equal(function__, "p", p, 0);
             current_statement_begin__ = 6;
             validate_non_negative_index("y", "N", N);
             context__.validate_dims("data initialization", "y", "vector_d", context__.to_vec(N));
@@ -126,12 +137,12 @@ public:
             }
             current_statement_begin__ = 8;
             validate_non_negative_index("X", "N", N);
-            validate_non_negative_index("X", "K", K);
-            context__.validate_dims("data initialization", "X", "matrix_d", context__.to_vec(N,K));
-            X = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(N, K);
+            validate_non_negative_index("X", "p", p);
+            context__.validate_dims("data initialization", "X", "matrix_d", context__.to_vec(N,p));
+            X = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(N, p);
             vals_r__ = context__.vals_r("X");
             pos__ = 0;
-            size_t X_j_2_max__ = K;
+            size_t X_j_2_max__ = p;
             size_t X_j_1_max__ = N;
             for (size_t j_2__ = 0; j_2__ < X_j_2_max__; ++j_2__) {
                 for (size_t j_1__ = 0; j_1__ < X_j_1_max__; ++j_1__) {
@@ -140,12 +151,12 @@ public:
             }
             current_statement_begin__ = 9;
             validate_non_negative_index("X0", "N0", N0);
-            validate_non_negative_index("X0", "K", K);
-            context__.validate_dims("data initialization", "X0", "matrix_d", context__.to_vec(N0,K));
-            X0 = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(N0, K);
+            validate_non_negative_index("X0", "p", p);
+            context__.validate_dims("data initialization", "X0", "matrix_d", context__.to_vec(N0,p));
+            X0 = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(N0, p);
             vals_r__ = context__.vals_r("X0");
             pos__ = 0;
-            size_t X0_j_2_max__ = K;
+            size_t X0_j_2_max__ = p;
             size_t X0_j_1_max__ = N0;
             for (size_t j_2__ = 0; j_2__ < X0_j_2_max__; ++j_2__) {
                 for (size_t j_1__ = 0; j_1__ < X0_j_1_max__; ++j_1__) {
@@ -153,24 +164,24 @@ public:
                 }
             }
             current_statement_begin__ = 10;
-            validate_non_negative_index("mu0", "K", K);
-            context__.validate_dims("data initialization", "mu0", "vector_d", context__.to_vec(K));
-            mu0 = Eigen::Matrix<double, Eigen::Dynamic, 1>(K);
+            validate_non_negative_index("mu0", "p", p);
+            context__.validate_dims("data initialization", "mu0", "vector_d", context__.to_vec(p));
+            mu0 = Eigen::Matrix<double, Eigen::Dynamic, 1>(p);
             vals_r__ = context__.vals_r("mu0");
             pos__ = 0;
-            size_t mu0_j_1_max__ = K;
+            size_t mu0_j_1_max__ = p;
             for (size_t j_1__ = 0; j_1__ < mu0_j_1_max__; ++j_1__) {
                 mu0(j_1__) = vals_r__[pos__++];
             }
             current_statement_begin__ = 11;
-            validate_non_negative_index("Sigma0", "K", K);
-            validate_non_negative_index("Sigma0", "K", K);
-            context__.validate_dims("data initialization", "Sigma0", "matrix_d", context__.to_vec(K,K));
-            Sigma0 = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(K, K);
+            validate_non_negative_index("Sigma0", "p", p);
+            validate_non_negative_index("Sigma0", "p", p);
+            context__.validate_dims("data initialization", "Sigma0", "matrix_d", context__.to_vec(p,p));
+            Sigma0 = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(p, p);
             vals_r__ = context__.vals_r("Sigma0");
             pos__ = 0;
-            size_t Sigma0_j_2_max__ = K;
-            size_t Sigma0_j_1_max__ = K;
+            size_t Sigma0_j_2_max__ = p;
+            size_t Sigma0_j_1_max__ = p;
             for (size_t j_2__ = 0; j_2__ < Sigma0_j_2_max__; ++j_2__) {
                 for (size_t j_1__ = 0; j_1__ < Sigma0_j_1_max__; ++j_1__) {
                     Sigma0(j_1__, j_2__) = vals_r__[pos__++];
@@ -185,12 +196,12 @@ public:
             sigmasq_shape = vals_r__[pos__++];
             check_greater_or_equal(function__, "sigmasq_shape", sigmasq_shape, 0);
             current_statement_begin__ = 13;
-            context__.validate_dims("data initialization", "sigmasq_rate", "double", context__.to_vec());
-            sigmasq_rate = double(0);
-            vals_r__ = context__.vals_r("sigmasq_rate");
+            context__.validate_dims("data initialization", "sigmasq_scale", "double", context__.to_vec());
+            sigmasq_scale = double(0);
+            vals_r__ = context__.vals_r("sigmasq_scale");
             pos__ = 0;
-            sigmasq_rate = vals_r__[pos__++];
-            check_greater_or_equal(function__, "sigmasq_rate", sigmasq_rate, 0);
+            sigmasq_scale = vals_r__[pos__++];
+            check_greater_or_equal(function__, "sigmasq_scale", sigmasq_scale, 0);
             current_statement_begin__ = 14;
             context__.validate_dims("data initialization", "a0_shape1", "double", context__.to_vec());
             a0_shape1 = double(0);
@@ -205,18 +216,83 @@ public:
             pos__ = 0;
             a0_shape2 = vals_r__[pos__++];
             check_greater_or_equal(function__, "a0_shape2", a0_shape2, 0);
+            current_statement_begin__ = 16;
+            validate_non_negative_index("offset", "N", N);
+            context__.validate_dims("data initialization", "offset", "vector_d", context__.to_vec(N));
+            offset = Eigen::Matrix<double, Eigen::Dynamic, 1>(N);
+            vals_r__ = context__.vals_r("offset");
+            pos__ = 0;
+            size_t offset_j_1_max__ = N;
+            for (size_t j_1__ = 0; j_1__ < offset_j_1_max__; ++j_1__) {
+                offset(j_1__) = vals_r__[pos__++];
+            }
+            current_statement_begin__ = 17;
+            validate_non_negative_index("offset0", "N0", N0);
+            context__.validate_dims("data initialization", "offset0", "vector_d", context__.to_vec(N0));
+            offset0 = Eigen::Matrix<double, Eigen::Dynamic, 1>(N0);
+            vals_r__ = context__.vals_r("offset0");
+            pos__ = 0;
+            size_t offset0_j_1_max__ = N0;
+            for (size_t j_1__ = 0; j_1__ < offset0_j_1_max__; ++j_1__) {
+                offset0(j_1__) = vals_r__[pos__++];
+            }
             // initialize transformed data variables
+            current_statement_begin__ = 20;
+            validate_non_negative_index("hist_prec", "p", p);
+            validate_non_negative_index("hist_prec", "p", p);
+            hist_prec = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(p, p);
+            stan::math::fill(hist_prec, DUMMY_VAR__);
+            stan::math::assign(hist_prec,crossprod(X0));
+            current_statement_begin__ = 21;
+            validate_non_negative_index("hist_mle", "p", p);
+            hist_mle = Eigen::Matrix<double, Eigen::Dynamic, 1>(p);
+            stan::math::fill(hist_mle, DUMMY_VAR__);
+            stan::math::assign(hist_mle,mdivide_left_spd(crossprod(X0), multiply(transpose(X0), y0)));
+            current_statement_begin__ = 22;
+            validate_non_negative_index("prior_prec", "p", p);
+            validate_non_negative_index("prior_prec", "p", p);
+            prior_prec = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(p, p);
+            stan::math::fill(prior_prec, DUMMY_VAR__);
+            stan::math::assign(prior_prec,inverse_spd(Sigma0));
+            current_statement_begin__ = 23;
+            validate_non_negative_index("hist_prec_mle", "p", p);
+            hist_prec_mle = Eigen::Matrix<double, Eigen::Dynamic, 1>(p);
+            stan::math::fill(hist_prec_mle, DUMMY_VAR__);
+            stan::math::assign(hist_prec_mle,multiply(hist_prec, hist_mle));
+            current_statement_begin__ = 24;
+            validate_non_negative_index("prior_prec_mean", "p", p);
+            prior_prec_mean = Eigen::Matrix<double, Eigen::Dynamic, 1>(p);
+            stan::math::fill(prior_prec_mean, DUMMY_VAR__);
+            stan::math::assign(prior_prec_mean,multiply(prior_prec, mu0));
+            current_statement_begin__ = 25;
+            sumy0sq = double(0);
+            stan::math::fill(sumy0sq, DUMMY_VAR__);
+            stan::math::assign(sumy0sq,dot_self(y0));
+            current_statement_begin__ = 26;
+            quad_b0 = double(0);
+            stan::math::fill(quad_b0, DUMMY_VAR__);
+            stan::math::assign(quad_b0,quad_form(prior_prec, mu0));
+            current_statement_begin__ = 27;
+            validate_non_negative_index("y_offset", "N", N);
+            y_offset = Eigen::Matrix<double, Eigen::Dynamic, 1>(N);
+            stan::math::fill(y_offset, DUMMY_VAR__);
+            stan::math::assign(y_offset,subtract(y, offset));
+            current_statement_begin__ = 28;
+            validate_non_negative_index("y0_offset", "N0", N0);
+            y0_offset = Eigen::Matrix<double, Eigen::Dynamic, 1>(N0);
+            stan::math::fill(y0_offset, DUMMY_VAR__);
+            stan::math::assign(y0_offset,subtract(y0, offset0));
             // execute transformed data statements
             // validate transformed data
             // validate, set parameter ranges
             num_params_r__ = 0U;
             param_ranges_i__.clear();
-            current_statement_begin__ = 18;
-            validate_non_negative_index("beta", "K", K);
-            num_params_r__ += K;
-            current_statement_begin__ = 19;
+            current_statement_begin__ = 31;
+            validate_non_negative_index("beta", "p", p);
+            num_params_r__ += p;
+            current_statement_begin__ = 32;
             num_params_r__ += 1;
-            current_statement_begin__ = 20;
+            current_statement_begin__ = 33;
             num_params_r__ += 1;
         } catch (const std::exception& e) {
             stan::lang::rethrow_located(e, current_statement_begin__, prog_reader__());
@@ -235,15 +311,15 @@ public:
         (void) pos__; // dummy call to supress warning
         std::vector<double> vals_r__;
         std::vector<int> vals_i__;
-        current_statement_begin__ = 18;
+        current_statement_begin__ = 31;
         if (!(context__.contains_r("beta")))
             stan::lang::rethrow_located(std::runtime_error(std::string("Variable beta missing")), current_statement_begin__, prog_reader__());
         vals_r__ = context__.vals_r("beta");
         pos__ = 0U;
-        validate_non_negative_index("beta", "K", K);
-        context__.validate_dims("parameter initialization", "beta", "vector_d", context__.to_vec(K));
-        Eigen::Matrix<double, Eigen::Dynamic, 1> beta(K);
-        size_t beta_j_1_max__ = K;
+        validate_non_negative_index("beta", "p", p);
+        context__.validate_dims("parameter initialization", "beta", "vector_d", context__.to_vec(p));
+        Eigen::Matrix<double, Eigen::Dynamic, 1> beta(p);
+        size_t beta_j_1_max__ = p;
         for (size_t j_1__ = 0; j_1__ < beta_j_1_max__; ++j_1__) {
             beta(j_1__) = vals_r__[pos__++];
         }
@@ -252,7 +328,7 @@ public:
         } catch (const std::exception& e) {
             stan::lang::rethrow_located(std::runtime_error(std::string("Error transforming variable beta: ") + e.what()), current_statement_begin__, prog_reader__());
         }
-        current_statement_begin__ = 19;
+        current_statement_begin__ = 32;
         if (!(context__.contains_r("sigmasq")))
             stan::lang::rethrow_located(std::runtime_error(std::string("Variable sigmasq missing")), current_statement_begin__, prog_reader__());
         vals_r__ = context__.vals_r("sigmasq");
@@ -265,7 +341,7 @@ public:
         } catch (const std::exception& e) {
             stan::lang::rethrow_located(std::runtime_error(std::string("Error transforming variable sigmasq: ") + e.what()), current_statement_begin__, prog_reader__());
         }
-        current_statement_begin__ = 20;
+        current_statement_begin__ = 33;
         if (!(context__.contains_r("a0")))
             stan::lang::rethrow_located(std::runtime_error(std::string("Variable a0 missing")), current_statement_begin__, prog_reader__());
         vals_r__ = context__.vals_r("a0");
@@ -303,21 +379,21 @@ public:
         try {
             stan::io::reader<local_scalar_t__> in__(params_r__, params_i__);
             // model parameters
-            current_statement_begin__ = 18;
+            current_statement_begin__ = 31;
             Eigen::Matrix<local_scalar_t__, Eigen::Dynamic, 1> beta;
             (void) beta;  // dummy to suppress unused var warning
             if (jacobian__)
-                beta = in__.vector_constrain(K, lp__);
+                beta = in__.vector_constrain(p, lp__);
             else
-                beta = in__.vector_constrain(K);
-            current_statement_begin__ = 19;
+                beta = in__.vector_constrain(p);
+            current_statement_begin__ = 32;
             local_scalar_t__ sigmasq;
             (void) sigmasq;  // dummy to suppress unused var warning
             if (jacobian__)
                 sigmasq = in__.scalar_lb_constrain(0, lp__);
             else
                 sigmasq = in__.scalar_lb_constrain(0);
-            current_statement_begin__ = 20;
+            current_statement_begin__ = 33;
             local_scalar_t__ a0;
             (void) a0;  // dummy to suppress unused var warning
             if (jacobian__)
@@ -326,25 +402,51 @@ public:
                 a0 = in__.scalar_lub_constrain(0, 1);
             // model body
             {
-            current_statement_begin__ = 27;
+            current_statement_begin__ = 36;
             local_scalar_t__ sigma(DUMMY_VAR__);
             (void) sigma;  // dummy to suppress unused var warning
             stan::math::initialize(sigma, DUMMY_VAR__);
             stan::math::fill(sigma, DUMMY_VAR__);
             stan::math::assign(sigma,stan::math::sqrt(sigmasq));
-            current_statement_begin__ = 28;
-            lp_accum__.add(multi_normal_log<propto__>(beta, mu0, Sigma0));
-            current_statement_begin__ = 29;
-            lp_accum__.add(inv_gamma_log<propto__>(sigmasq, sigmasq_shape, sigmasq_rate));
-            current_statement_begin__ = 30;
-            if (as_bool((primitive_value(logical_neq(a0_shape1, 1)) || primitive_value(logical_neq(a0_shape2, 1))))) {
-                current_statement_begin__ = 31;
-                lp_accum__.add(beta_log<propto__>(a0, a0_shape1, a0_shape2));
-            }
-            current_statement_begin__ = 34;
-            lp_accum__.add(normal_id_glm_lpdf<propto__>(y, X, 0.0, beta, sigma));
-            current_statement_begin__ = 35;
-            lp_accum__.add(normal_id_glm_log(y0, X0, 0.0, beta, (sigma * inv_sqrt(a0))));
+            current_statement_begin__ = 37;
+            validate_non_negative_index("prec_a0", "p", p);
+            validate_non_negative_index("prec_a0", "p", p);
+            Eigen::Matrix<local_scalar_t__, Eigen::Dynamic, Eigen::Dynamic> prec_a0(p, p);
+            stan::math::initialize(prec_a0, DUMMY_VAR__);
+            stan::math::fill(prec_a0, DUMMY_VAR__);
+            stan::math::assign(prec_a0,add(multiply(a0, hist_prec), prior_prec));
+            current_statement_begin__ = 38;
+            validate_non_negative_index("mean_a0", "p", p);
+            Eigen::Matrix<local_scalar_t__, Eigen::Dynamic, 1> mean_a0(p);
+            stan::math::initialize(mean_a0, DUMMY_VAR__);
+            stan::math::fill(mean_a0, DUMMY_VAR__);
+            stan::math::assign(mean_a0,mdivide_left_spd(prec_a0, add(multiply(a0, hist_prec_mle), prior_prec_mean)));
+            current_statement_begin__ = 41;
+            local_scalar_t__ sigmasq_shape_a0(DUMMY_VAR__);
+            (void) sigmasq_shape_a0;  // dummy to suppress unused var warning
+            stan::math::initialize(sigmasq_shape_a0, DUMMY_VAR__);
+            stan::math::fill(sigmasq_shape_a0, DUMMY_VAR__);
+            stan::math::assign(sigmasq_shape_a0,(sigmasq_shape + (0.5 * (a0 * N0))));
+            current_statement_begin__ = 42;
+            local_scalar_t__ sigmasq_scale_a0(DUMMY_VAR__);
+            (void) sigmasq_scale_a0;  // dummy to suppress unused var warning
+            stan::math::initialize(sigmasq_scale_a0, DUMMY_VAR__);
+            stan::math::fill(sigmasq_scale_a0, DUMMY_VAR__);
+            stan::math::assign(sigmasq_scale_a0,(sigmasq_scale + (0.5 * (((a0 * sumy0sq) + quad_b0) - quad_form(prec_a0, mean_a0)))));
+            current_statement_begin__ = 46;
+            lp_accum__.add(normal_id_glm_lpdf<propto__>(y_offset, X, 0.0, beta, sigma));
+            current_statement_begin__ = 47;
+            lp_accum__.add((a0 * normal_id_glm_log(y0_offset, X0, 0.0, beta, sigma)));
+            current_statement_begin__ = 50;
+            lp_accum__.add(inv_gamma_log<propto__>(sigmasq, sigmasq_shape, sigmasq_scale));
+            current_statement_begin__ = 51;
+            lp_accum__.add(multi_normal_prec_log<propto__>(beta, mu0, multiply(prior_prec, inv(sigmasq))));
+            current_statement_begin__ = 54;
+            lp_accum__.add((-(0.5) * log_determinant(add(multiply(a0, hist_prec), prior_prec))));
+            current_statement_begin__ = 55;
+            lp_accum__.add(-(stan::math::lgamma(sigmasq_shape_a0)));
+            current_statement_begin__ = 56;
+            lp_accum__.add((sigmasq_shape_a0 * stan::math::log(sigmasq_scale_a0)));
             }
         } catch (const std::exception& e) {
             stan::lang::rethrow_located(e, current_statement_begin__, prog_reader__());
@@ -374,7 +476,7 @@ public:
         dimss__.resize(0);
         std::vector<size_t> dims__;
         dims__.resize(0);
-        dims__.push_back(K);
+        dims__.push_back(p);
         dimss__.push_back(dims__);
         dims__.resize(0);
         dimss__.push_back(dims__);
@@ -395,8 +497,8 @@ public:
         static const char* function__ = "model_lm_pp_gaussian_post_namespace::write_array";
         (void) function__;  // dummy to suppress unused var warning
         // read-transform, write parameters
-        Eigen::Matrix<double, Eigen::Dynamic, 1> beta = in__.vector_constrain(K);
-        size_t beta_j_1_max__ = K;
+        Eigen::Matrix<double, Eigen::Dynamic, 1> beta = in__.vector_constrain(p);
+        size_t beta_j_1_max__ = p;
         for (size_t j_1__ = 0; j_1__ < beta_j_1_max__; ++j_1__) {
             vars__.push_back(beta(j_1__));
         }
@@ -443,7 +545,7 @@ public:
                                  bool include_tparams__ = true,
                                  bool include_gqs__ = true) const {
         std::stringstream param_name_stream__;
-        size_t beta_j_1_max__ = K;
+        size_t beta_j_1_max__ = p;
         for (size_t j_1__ = 0; j_1__ < beta_j_1_max__; ++j_1__) {
             param_name_stream__.str(std::string());
             param_name_stream__ << "beta" << '.' << j_1__ + 1;
@@ -464,7 +566,7 @@ public:
                                    bool include_tparams__ = true,
                                    bool include_gqs__ = true) const {
         std::stringstream param_name_stream__;
-        size_t beta_j_1_max__ = K;
+        size_t beta_j_1_max__ = p;
         for (size_t j_1__ = 0; j_1__ < beta_j_1_max__; ++j_1__) {
             param_name_stream__.str(std::string());
             param_name_stream__ << "beta" << '.' << j_1__ + 1;

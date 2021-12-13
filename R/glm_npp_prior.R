@@ -3,7 +3,11 @@
 
 #' Sample from prior of power prior for a GLM
 #'
-#' Uses `rstan` to sample from the prior of a power prior for a generalized linear model
+#' Uses `rstan` to sample from the prior of a power prior for a
+#' generalized linear model with a fixed power prior parameter. This function
+#' is the backbone for the `glm_npp_lognc` function, but it can be useful by
+#' itself for diagnosing sampling issues or finding out an appropriate amount
+#' of samples for bridge sampling.
 #'
 #' @param formula         an object of class \code{\link[stats]{formula}}.
 #' @param family          an object of type \code{\link[stats]{family}} giving distribution and link function
@@ -17,15 +21,16 @@
 #' @param ...             optional parameters to pass onto `rstan::sampling`
 #'
 #' @return an object of class [rstan::stanfit] returned by `rstan::sampling`
+#'
+#' @export
 glm_npp_prior = function(
-  formula, family, histdata, a0, beta0 = NULL, Sigma0 = NULL, offset = NULL, disp.shape = 1e-4, disp.scale = 1e-4, ...
+  formula, family, histdata, a0, beta0 = NULL, Sigma0 = NULL, offset = NULL, disp.shape = 2.1, disp.scale = 1.1, ...
 ) {
   ## get design matrix
   X = model.matrix(formula, histdata)
 
   ## get response
   y0 = histdata[, all.vars(formula)[1]]
-
 
   ## get mu link function as integer
   links = c('identity', 'log', 'logit', 'inverse', 'probit', 'cauchit', 'cloglog', 'sqrt', '1/mu^2')
@@ -60,7 +65,7 @@ glm_npp_prior = function(
     'offset'      = offset
   )
 
-  if ( family$family %in% c("gaussian", "Gamma") ) {
+  if ( family$family %in% c("gaussian", "Gamma", "inverse.gaussian") ) {
     standat = c(standat, 'disp_shape' = disp.shape, 'disp_scale' = disp.scale)
   }
 
@@ -104,6 +109,16 @@ glm_npp_prior = function(
       )
     )
   }
+
+  if ( family$family == "inverse.gaussian")
+    return(
+      rstan::sampling(
+        object = stanmodels$glm_pp_invgaussian,
+        data   = standat,
+        ...
+      )
+    )
+
   stop("Invalid family")
   return(NA);   ## never reached
 }
